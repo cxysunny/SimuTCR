@@ -1,6 +1,6 @@
 # outputs
 output_dir: ./results
-name: 4-6-1_nodropout
+name: 4-6-16_feature128_transition
 
 # training settings
 alphabet: &alphabet ./config/alphabet.yml
@@ -12,6 +12,7 @@ device: &device cuda:2
 model:
   feature_config:
     aa_size: 23
+    out_dim: &dim 128
     va_size: 62
     ja_size: 65
     vb_size: 70
@@ -23,8 +24,8 @@ model:
     jb_dim: 32
     hla_dim: 32
   model_config:
-    num_blocks: 2
-    dim: 144
+    num_blocks: 4
+    dim: 128
     num_heads: 4
 
 dataset:

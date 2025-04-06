@@ -136,6 +136,19 @@ class Dropout(nn.Module):
         x = x * mask
         return x # [B, L, L, D]
 
+class TransitionLayer(nn.Module):
+    def __init__(self, dim=128, n=4):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.linear_ab = nn.Linear(dim, n*dim*2)
+        self.linear_out = nn.Linear(n*dim, dim)
+
+    def forward(self, x):
+        x = self.norm(x)
+        ab = self.linear_ab(x)
+        a, b = torch.chunk(ab, 2, dim=-1)
+        x = self.linear_out(F.silu(a) * b)
+        return x
 
 class PairUpdate(nn.Module):
     """Pair特征更新模块"""
@@ -145,14 +158,9 @@ class PairUpdate(nn.Module):
         self.tri_mul_in = TriangleMultiplication(dim, outgoing=False)
         self.tri_attn_start = TriangleAttention(dim, starting_node=True)
         self.tri_attn_end = TriangleAttention(dim, starting_node=False)
-        self.transition = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, 4*dim),
-            nn.ReLU(),
-            nn.Linear(4*dim, dim)
-        )
-        self.dropout_row = Dropout(0.2, -3) # [B, L, L, D]
-        self.dropout_col = Dropout(0.2, -2) # [B, L, L, D]
+        self.transition = TransitionLayer(dim,4)
+        # self.dropout_row = Dropout(0.2, -3) # [B, L, L, D]
+        # self.dropout_col = Dropout(0.2, -2) # [B, L, L, D]
         
     def forward(self, pair, pair_mask):
         # pair = pair + self.dropout_row(self.tri_mul_out(pair, pair_mask))
@@ -209,12 +217,7 @@ class SingleUpdate(nn.Module):
     def __init__(self, dim=144):
         super().__init__()
         self.attn = AttentionPairBias(dim)
-        self.transition = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, 4*dim),
-            nn.ReLU(),
-            nn.Linear(4*dim, dim)
-        )
+        self.transition = TransitionLayer(dim,4)
         
     def forward(self, single, pair, single_mask):
         # 带Pair偏置的注意力
@@ -227,8 +230,8 @@ class PairformerBlock(nn.Module):
     """完整的Pairformer块"""
     def __init__(self, dim=144, num_heads=8):
         super().__init__()
-        self.pair_update = PairUpdate(dim)
-        self.single_update = SingleUpdate(dim)
+        self.pair_update = PairUpdate(dim, num_heads=num_heads)
+        self.single_update = SingleUpdate(dim, num_heads=num_heads)
         
     def forward(self, single, pair, single_mask, pair_mask):
         # 更新Pair特征
@@ -259,15 +262,15 @@ class Model(nn.Module):
         self.pairformer = PairformerStack(**model_config)
         d = 144 + feature_config['va_dim'] * 5
         self.head = nn.Linear(d, 1)
-        self.head_1 = nn.Sequential(
-            nn.Linear(384, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1)
-        )
+        # self.head_1 = nn.Sequential(
+        #     nn.Linear(384, 128),
+        #     nn.ReLU(),
+        #     nn.Linear(128, 64),
+        #     nn.ReLU(),
+        #     nn.Linear(64, 32),
+        #     nn.ReLU(),
+        #     nn.Linear(32, 1)
+        # )
         
     def forward(self, inputs):
         single_embedding, pair_embedding, point_embedding, single_mask, pair_mask = self.features(**inputs)

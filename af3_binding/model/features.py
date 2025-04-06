@@ -54,7 +54,7 @@ class RelativePositionEncoding(nn.Module):
         return self.embedding(offset) # [B,L,K] -> [B,L,K,d_model]
 
 class Features(nn.Module):
-    def __init__(self, aa_size:int,
+    def __init__(self, aa_size:int, out_dim:int,
                  va_size:int, ja_size:int, va_dim:int, ja_dim:int,
                  vb_size:int, jb_size:int, vb_dim:int, jb_dim:int,
                  hla_size:int, hla_dim:int):
@@ -92,6 +92,10 @@ class Features(nn.Module):
         self.single_position_encoding = PositionEncoding(d_model=56+64+8+16, max_len=400) # 144
         #对成对特征：d_model = 64（pair压缩）+64（距离压缩）+16（PAE压缩）=144 
         self.pair_position_encoding = RelativePositionEncoding(d_model=64+64+16, max_len=400)
+
+        self.single_out = nn.Linear(144, out_dim)
+        self.pair_out = nn.Linear(144, out_dim)
+        self.point_out = nn.Linear(va_dim+ja_dim+vb_dim+jb_dim+hla_dim, out_dim)
         
     def forward(self, 
                 seq_tokens:torch.Tensor, # [B, L]
@@ -141,4 +145,9 @@ class Features(nn.Module):
 
         single_embedding = single_embedding + single_pos_emb # [B, L, 144]
         pair_embedding = pair_embedding + pair_pos_emb # [B, L, L, 144]
+
+        single_embedding = self.single_out(single_embedding + single_pos_emb)
+        pair_embedding = self.pair_out(pair_embedding + pair_pos_emb)
+        point_embedding = self.point_out(torch.cat([va_emb, ja_emb, vb_emb, jb_emb, hla_emb], dim=-1)) # [B, d+d+d+d+d]
+
         return single_embedding, pair_embedding, point_embedding, single_mask, pair_mask #[B, L, 144], [B, L, L, 144], [B, d+d+d+d+d], [B, L], [B, L, L]
