@@ -152,7 +152,7 @@ class TransitionLayer(nn.Module):
 
 class PairUpdate(nn.Module):
     """Pair特征更新模块"""
-    def __init__(self, dim=144):
+    def __init__(self, dim=144, num_heads=8):
         super().__init__()
         self.tri_mul_out = TriangleMultiplication(dim, outgoing=True)
         self.tri_mul_in = TriangleMultiplication(dim, outgoing=False)
@@ -214,7 +214,7 @@ class AttentionPairBias(nn.Module):
 
 class SingleUpdate(nn.Module):
     """Single特征更新模块"""
-    def __init__(self, dim=144):
+    def __init__(self, dim=144, num_heads=8):
         super().__init__()
         self.attn = AttentionPairBias(dim)
         self.transition = TransitionLayer(dim,4)
@@ -260,7 +260,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.features = Features(**feature_config)
         self.pairformer = PairformerStack(**model_config)
-        d = 144 + feature_config['va_dim'] * 5
+        d = feature_config['out_dim']*2
         self.head = nn.Linear(d, 1)
         # self.head_1 = nn.Sequential(
         #     nn.Linear(384, 128),

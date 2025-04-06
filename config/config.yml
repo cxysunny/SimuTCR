@@ -7,7 +7,7 @@ alphabet: &alphabet ./config/alphabet.yml
 previous_checkpoint: 
 num_epochs: 200
 seed: 1234
-device: &device cuda:2
+device: &device cuda:1
 
 model:
   feature_config:
