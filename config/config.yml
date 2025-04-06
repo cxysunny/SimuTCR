@@ -1,0 +1,79 @@
+# outputs
+output_dir: ./results
+name: 4-6-1_nodropout
+
+# training settings
+alphabet: &alphabet ./config/alphabet.yml
+previous_checkpoint: 
+num_epochs: 200
+seed: 1234
+device: &device cuda:2
+
+model:
+  feature_config:
+    aa_size: 23
+    va_size: 62
+    ja_size: 65
+    vb_size: 70
+    jb_size: 16
+    hla_size: 43
+    va_dim: 32
+    ja_dim: 32
+    vb_dim: 32
+    jb_dim: 32
+    hla_dim: 32
+  model_config:
+    num_blocks: 2
+    dim: 144
+    num_heads: 4
+
+dataset:
+  data_dir: ./dataset
+  va_vocab: ./config/va_config.yml
+  vb_vocab: ./config/vb_config.yml
+  ja_vocab: ./config/ja_config.yml
+  jb_vocab: ./config/jb_config.yml
+  hla_vocab: ./config/hla_config.yml
+  peptide_vocab: *alphabet
+
+dataloader:
+  batch_size: 64
+  shuffle: True
+  num_workers: 8
+
+optimizer:
+  lr: 0.001
+  weight_decay: 0.0001
+
+scheduler:
+  step_size: 20
+  gamma: 0.2
+
+# logging settings
+logger:
+    version: 1
+    disable_existing_loggers: false
+    formatters:
+        simple:
+            format: '%(message)s'
+        datetime:
+            format: '%(asctime)s - %(levelname)s - %(message)s'
+    handlers:
+        console:
+            class: logging.StreamHandler
+            level: DEBUG
+            formatter: simple
+            stream: ext://sys.stdout
+        info_file_handler:
+            class: logging.handlers.RotatingFileHandler
+            level: INFO
+            formatter: datetime
+            filename: info.log
+            maxBytes: 10485760
+            backupCount: 20
+            encoding: utf8
+    root:
+        level: DEBUG
+        handlers:
+        - console
+        - info_file_handler
