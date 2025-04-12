@@ -5,8 +5,13 @@ scripts/
 # 忽略日志文件
 output.log
 output4312.log
-output4312_complex.log
 output4414.log
 output460.log
 output461.log
 train.log
+
+__pycache__/
+*.log
+.vscode/
+*.png
+mhc/mhcjson/
