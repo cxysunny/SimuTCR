@@ -1,0 +1,16 @@
+{
+    "name": "HLA-C*04:01",
+    "modelSeeds": [
+        1234
+    ],
+    "sequences": [
+        {
+            "protein": {
+                "id": "D",
+                "sequence": "GSHSMRYFSTSVSWPGRGEPRFIAVGYVDDTQFVRFDSDAASPRGEPREPWVEQEGPEYWDRETQKYKRQAQADRVNLRKLRGYYNQSEDGSHTLQRMFGCDLGPDGRLLRGYNQFAYDGKDYIALNEDLRSWTAADTAAQITQRKWEAAREAEQRRAYLEGTCVEWLRRYLENG"
+            }
+        }
+    ],
+    "dialect": "alphafold3",
+    "version": 1
+}

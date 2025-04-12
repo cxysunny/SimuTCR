@@ -159,8 +159,8 @@ class PairUpdate(nn.Module):
         self.tri_attn_start = TriangleAttention(dim, starting_node=True)
         self.tri_attn_end = TriangleAttention(dim, starting_node=False)
         self.transition = TransitionLayer(dim,4)
-        # self.dropout_row = Dropout(0.2, -3) # [B, L, L, D]
-        # self.dropout_col = Dropout(0.2, -2) # [B, L, L, D]
+        # self.dropout_row = Dropout(0.25, -3) # [B, L, L, D]
+        # self.dropout_col = Dropout(0.25, -2) # [B, L, L, D]
         
     def forward(self, pair, pair_mask):
         # pair = pair + self.dropout_row(self.tri_mul_out(pair, pair_mask))
@@ -254,9 +254,8 @@ class PairformerStack(nn.Module):
         return single, pair
 
 
-
 class Model(nn.Module):
-    def __init__(self, feature_config:dict, model_config:dict):
+    def __init__(self, feature_config:dict, model_config:dict, dim:int,use_seqfeat:bool=False, n_tgt_attn:int=1):
         super(Model, self).__init__()
         self.features = Features(**feature_config)
         self.pairformer = PairformerStack(**model_config)
@@ -275,7 +274,11 @@ class Model(nn.Module):
     def forward(self, inputs):
         single_embedding, pair_embedding, point_embedding, single_mask, pair_mask = self.features(**inputs)
         single, pair = self.pairformer(single_embedding, pair_embedding, single_mask, pair_mask)
-        x = torch.cat([torch.mean(single, dim=1), point_embedding], dim=-1) # [B, 144+5*va_dim]
+        x = torch.cat([torch.mean(single, dim=1), point_embedding], dim=-1) 
         x = self.head(x) #[B, 1]
         # x = self.head_1(torch.mean(inputs['embedding_single'], dim=1)) #[B, 384] -> [B, 1]
+
+        # for block in self.target_attn_blocks:
+        #     point_embedding = block(point_embedding, single, single_mask)
+        # x = self.head(point_embedding)
         return x.squeeze(-1) #[B]

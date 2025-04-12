@@ -1,0 +1,16 @@
+{
+    "name": "HLA-B*50:01",
+    "modelSeeds": [
+        1234
+    ],
+    "sequences": [
+        {
+            "protein": {
+                "id": "D",
+                "sequence": "GSHSMRYFHTAMSRPGRGEPRFITVGYVDDTLFVRFDSDATSPRKEPRAPWIEQEGPEYWDRETQISKTNTQTYRESLRNLRGYYNQSEAGSHTWQRMYGCDLGPDGRLLRGYNQLAYDGKDYIALNEDLSSWTAADTAAQITQRKWEAAREAEQLRAYLEGLCVEWLRRYLENG"
+            }
+        }
+    ],
+    "dialect": "alphafold3",
+    "version": 1
+}

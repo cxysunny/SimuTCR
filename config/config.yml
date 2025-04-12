@@ -1,6 +1,6 @@
 # outputs
 output_dir: ./results
-name: 4-6-16_feature128_transition
+name: tcr_pmhc
 
 # training settings
 alphabet: &alphabet ./config/alphabet.yml
@@ -27,6 +27,9 @@ model:
     num_blocks: 4
     dim: 128
     num_heads: 4
+  dim: 128
+  # use_seqfeat: True
+  # n_tgt_attn: 2  
 
 dataset:
   data_dir: ./dataset

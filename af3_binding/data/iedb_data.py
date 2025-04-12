@@ -16,7 +16,7 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
     iedb_neg = pd.read_csv(osp.join(data_dir, 'iedb_negatives.csv'))
     data = []
     for i in range(len(iedb_pos)):
-        if not osp.exists(osp.join(data_dir, 'iedb_pos_v2_random500', f'{i}')):
+        if not osp.exists(osp.join(data_dir, 'pos_tcrpmhc', f'{i}')):
             continue
         data.append(
             {
@@ -31,15 +31,15 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
                 'jb': iedb_pos.loc[i, 'Jb'],
                 'peptide': iedb_pos.loc[i, 'Peptide'],
 
-                'embedding_dir': osp.join(data_dir, 'iedb_pos_v2_random500', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
-                'confidence_dir': osp.join(data_dir, 'iedb_pos_v2_random500', f'{i}/{i}_confidences.json'),
-                'model_dir': osp.join(data_dir, 'iedb_pos_v2_random500', f'{i}/{i}_model.cif'),
+                'embedding_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
+                'confidence_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/{i}_confidences.json'),
+                'model_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/{i}_model.cif'),
 
                 'label': 1
             }
         )
     for i in range(len(iedb_neg)):
-        if not osp.exists(osp.join(data_dir, 'iedb_neg_v2_random1500', f'{i}')):
+        if not osp.exists(osp.join(data_dir, 'neg_tcrpmhc', f'{i}')):
             continue
         data.append(
             {
@@ -54,9 +54,9 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
                 'jb': iedb_neg.loc[i, 'Jb'],
                 'peptide': iedb_neg.loc[i, 'Peptide'],
 
-                'embedding_dir': osp.join(data_dir, 'iedb_neg_v2_random1500', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
-                'confidence_dir': osp.join(data_dir, 'iedb_neg_v2_random1500', f'{i}/{i}_confidences.json'),
-                'model_dir': osp.join(data_dir, 'iedb_neg_v2_random1500', f'{i}/{i}_model.cif'),
+                'embedding_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
+                'confidence_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/{i}_confidences.json'),
+                'model_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/{i}_model.cif'),
 
                 'label': 0
             }

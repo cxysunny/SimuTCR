@@ -1,0 +1,123 @@
+nohup: ignoring input
+total trainable params: 3217529
+model: Model(
+  (features): Features(
+    (aa_embedding): Embedding(23, 56)
+    (signle_compress): Sequential(
+      (0): Linear(in_features=384, out_features=128, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=128, out_features=64, bias=True)
+    )
+    (pair_compress): Sequential(
+      (0): Linear(in_features=128, out_features=128, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=128, out_features=64, bias=True)
+    )
+    (chain_embedding): Embedding(4, 8)
+    (distance_compress): Sequential(
+      (0): Linear(in_features=256, out_features=128, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=128, out_features=64, bias=True)
+    )
+    (pae_compress): Sequential(
+      (0): Linear(in_features=16, out_features=16, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=16, out_features=16, bias=True)
+    )
+    (plddt_embedding): Embedding(20, 16, padding_idx=0)
+    (va_embedding): Embedding(63, 32, padding_idx=62)
+    (ja_embedding): Embedding(66, 32, padding_idx=65)
+    (vb_embedding): Embedding(71, 32, padding_idx=70)
+    (jb_embedding): Embedding(17, 32, padding_idx=16)
+    (hla_embedding): Embedding(44, 32, padding_idx=43)
+    (single_position_encoding): PositionEncoding()
+    (pair_position_encoding): RelativePositionEncoding(
+      (embedding): Embedding(801, 144)
+    )
+    (single_out): Linear(in_features=144, out_features=128, bias=True)
+    (pair_out): Linear(in_features=144, out_features=128, bias=True)
+    (point_out): Linear(in_features=160, out_features=128, bias=True)
+  )
+  (pairformer): PairformerStack(
+    (blocks): ModuleList(
+      (0-3): 4 x PairformerBlock(
+        (pair_update): PairUpdate(
+          (tri_mul_out): TriangleMultiplication(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_ab): Linear(in_features=128, out_features=256, bias=False)
+            (linear_abg): Linear(in_features=128, out_features=256, bias=False)
+            (linear_g): Linear(in_features=128, out_features=128, bias=False)
+            (linear_out): Linear(in_features=128, out_features=128, bias=False)
+          )
+          (tri_mul_in): TriangleMultiplication(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_ab): Linear(in_features=128, out_features=256, bias=False)
+            (linear_abg): Linear(in_features=128, out_features=256, bias=False)
+            (linear_g): Linear(in_features=128, out_features=128, bias=False)
+            (linear_out): Linear(in_features=128, out_features=128, bias=False)
+          )
+          (tri_attn_start): TriangleAttention(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_qkv): Linear(in_features=128, out_features=96, bias=False)
+            (linear_b): Linear(in_features=128, out_features=4, bias=False)
+            (linear_g): Linear(in_features=128, out_features=128, bias=False)
+            (linear_out): Linear(in_features=32, out_features=128, bias=False)
+          )
+          (tri_attn_end): TriangleAttention(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_qkv): Linear(in_features=128, out_features=96, bias=False)
+            (linear_b): Linear(in_features=128, out_features=4, bias=False)
+            (linear_g): Linear(in_features=128, out_features=128, bias=False)
+            (linear_out): Linear(in_features=32, out_features=128, bias=False)
+          )
+          (transition): TransitionLayer(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_ab): Linear(in_features=128, out_features=1024, bias=True)
+            (linear_out): Linear(in_features=512, out_features=128, bias=True)
+          )
+        )
+        (single_update): SingleUpdate(
+          (attn): AttentionPairBias(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_q): Linear(in_features=128, out_features=128, bias=False)
+            (linear_kv): Linear(in_features=128, out_features=256, bias=False)
+            (linear_b): Linear(in_features=128, out_features=8, bias=False)
+            (linear_out): Linear(in_features=128, out_features=128, bias=False)
+          )
+          (transition): TransitionLayer(
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (linear_ab): Linear(in_features=128, out_features=1024, bias=True)
+            (linear_out): Linear(in_features=512, out_features=128, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (head): Linear(in_features=256, out_features=1, bias=True)
+)
+Epoch 0, Batch 0, Loss: 0.6417650580406189
+Epoch 0, Batch 1, Loss: 0.41933488845825195
+Epoch 0, Batch 2, Loss: 0.9004223942756653
+Epoch 0, Batch 3, Loss: 0.5201994180679321
+Epoch 0, Batch 4, Loss: 0.6176353693008423
+Epoch 0, Batch 5, Loss: 0.649744987487793
+Epoch 0, Batch 6, Loss: 0.5922621488571167
+Epoch 0, Batch 7, Loss: 0.5922238826751709
+Epoch 0, Batch 8, Loss: 0.6907124519348145
+Epoch 0, Batch 9, Loss: 0.6042811274528503
+Epoch 0, Batch 10, Loss: 0.7076467275619507
+Epoch 0, Batch 11, Loss: 0.5860798358917236
+Epoch 0, Batch 12, Loss: 0.5989081263542175
+Epoch 0, Batch 13, Loss: 0.5961911678314209
+Epoch 0, Batch 14, Loss: 0.5713751316070557
+Epoch 0, Batch 15, Loss: 0.48549512028694153
+Epoch 0, Batch 16, Loss: 0.7810674905776978
+Epoch 0, Batch 17, Loss: 0.5597478151321411
+Epoch 0, Batch 18, Loss: 0.5540956258773804
+Epoch 0, Batch 19, Loss: 0.5415781736373901
+Epoch 0, Batch 20, Loss: 0.5384990572929382
+Epoch 0, Batch 21, Loss: 0.610126793384552
+Epoch 0, Batch 22, Loss: 0.601580798625946
+Epoch 0, Batch 23, Loss: 0.5497740507125854

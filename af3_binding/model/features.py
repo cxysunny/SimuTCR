@@ -81,12 +81,19 @@ class Features(nn.Module):
             nn.GELU(),
             nn.Linear(16, 16),
         )
-        self.plddt_embedding = nn.Embedding(20, 16)
-        self.va_embedding = nn.Embedding(va_size, va_dim)
-        self.ja_embedding = nn.Embedding(ja_size, ja_dim)
-        self.vb_embedding = nn.Embedding(vb_size, vb_dim)
-        self.jb_embedding = nn.Embedding(jb_size, jb_dim)
-        self.hla_embedding = nn.Embedding(hla_size, hla_dim)
+        # self.plddt_embedding = nn.Embedding(20, 16)
+        # self.va_embedding = nn.Embedding(va_size, va_dim)
+        # self.ja_embedding = nn.Embedding(ja_size, ja_dim)
+        # self.vb_embedding = nn.Embedding(vb_size, vb_dim)
+        # self.jb_embedding = nn.Embedding(jb_size, jb_dim)
+        # self.hla_embedding = nn.Embedding(hla_size, hla_dim)
+
+        self.plddt_embedding = nn.Embedding(20, 16, padding_idx=0)
+        self.va_embedding = nn.Embedding(va_size+1, va_dim, padding_idx=va_size)
+        self.ja_embedding = nn.Embedding(ja_size+1, ja_dim, padding_idx=ja_size)
+        self.vb_embedding = nn.Embedding(vb_size+1, vb_dim, padding_idx=vb_size)
+        self.jb_embedding = nn.Embedding(jb_size+1, jb_dim, padding_idx=jb_size)
+        self.hla_embedding = nn.Embedding(hla_size+1, hla_dim, padding_idx=hla_size)
         
         #对单序列特征：d_model = 56（aa_embedding）+64（单链压缩）+8（链嵌入）+16（pLDDT嵌入）=144
         self.single_position_encoding = PositionEncoding(d_model=56+64+8+16, max_len=400) # 144

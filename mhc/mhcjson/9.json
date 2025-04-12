@@ -1,0 +1,16 @@
+{
+    "name": "HLA-A*30:02",
+    "modelSeeds": [
+        1234
+    ],
+    "sequences": [
+        {
+            "protein": {
+                "id": "D",
+                "sequence": "GSHSMRYFSTSVSRPGSGEPRFIAVGYVDDTQFVRFDSDAASQRMEPRAPWIEQERPEYWDQETRNVKAHSQTDRENLGTLRGYYNQSEAGSHTIQIMYGCDVGSDGRFLRGYEQHAYDGKDYIALNEDLRSWTAADMAAQITQRKWEAARRAEQLRAYLEGTCVEWLRRYLENG"
+            }
+        }
+    ],
+    "dialect": "alphafold3",
+    "version": 1
+}
