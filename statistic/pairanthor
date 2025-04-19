@@ -1,0 +1,209 @@
+import os
+import glob
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+import umap.umap_ as umap
+from tqdm import tqdm
+import gc
+
+def extract_interface_embeddings(pt_file, label):
+    """从.pt文件提取CDR3-peptide界面嵌入"""
+    try:
+        # 加载.pt文件
+        sample = torch.load(pt_file)
+        
+        # 提取数据
+        pair_emb = sample['embedding_pair']      # [L, L, 128]
+        chain_encoding = sample['chain_encoding'] # [L]
+        
+        # 定位区域：1=CDR3a, 2=CDR3b, 3=peptide
+        cdr3a_indices = (chain_encoding == 1).nonzero(as_tuple=True)[0]
+        cdr3b_indices = (chain_encoding == 2).nonzero(as_tuple=True)[0]
+        peptide_indices = (chain_encoding == 3).nonzero(as_tuple=True)[0]
+        
+        if len(cdr3a_indices) == 0 or len(cdr3b_indices) == 0 or len(peptide_indices) == 0:
+            return None
+        
+        # 提取界面嵌入
+        cdr3a_peptide = torch.mean(pair_emb[cdr3a_indices][:, peptide_indices], dim=(0, 1)).numpy()
+        cdr3b_peptide = torch.mean(pair_emb[cdr3b_indices][:, peptide_indices], dim=(0, 1)).numpy()
+        
+        # CDR3a+CDR3b 与 peptide
+        cdr3_indices = torch.cat([cdr3a_indices, cdr3b_indices])
+        cdr3ab_peptide = torch.mean(pair_emb[cdr3_indices][:, peptide_indices], dim=(0, 1)).numpy()
+        
+        # 清理内存
+        del pair_emb, chain_encoding, sample
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        gc.collect()
+        
+        return {
+            'cdr3a_peptide': cdr3a_peptide,
+            'cdr3b_peptide': cdr3b_peptide,
+            'cdr3ab_peptide': cdr3ab_peptide,
+            'label': label
+        }
+        
+    except Exception as e:
+        print(f"Error processing {pt_file}: {e}")
+        return None
+
+def load_embeddings(root_dir, label, max_samples=None):
+    """串行加载.pt文件（避免多进程资源问题）"""
+    # 搜索所有.pt文件
+    pattern = os.path.join(root_dir, "*", "seed-1234_embeddings", "*.pt")
+    files = glob.glob(pattern)
+    
+    if not files:
+        pattern = os.path.join(root_dir, "*", "seed-1234_embeddings", "seed-1234_embeddings.pt")
+        files = glob.glob(pattern)
+    
+    if max_samples and len(files) > max_samples:
+        files = files[:max_samples]
+    
+    print(f"Processing {len(files)} files from {root_dir}")
+    
+    # 串行处理
+    valid_results = []
+    for file in tqdm(files, desc=f"{'Positive' if label==1 else 'Negative'} samples"):
+        result = extract_interface_embeddings(file, label)
+        if result is not None:
+            valid_results.append(result)
+            
+        # 每处理10个文件清理一次内存
+        if len(valid_results) % 10 == 0:
+            gc.collect()
+    
+    print(f"Successfully processed {len(valid_results)} files")
+    return valid_results
+
+def reduce_and_plot(name, data, labels, ax_tsne, ax_umap):
+    """降维并绘制单个数据集"""
+    # 确保有足够数据
+    if len(data) < 10:
+        ax_tsne.text(0.5, 0.5, "Not enough data", ha='center', va='center')
+        ax_umap.text(0.5, 0.5, "Not enough data", ha='center', va='center')
+        return
+    
+    # t-SNE
+    print(f"Running t-SNE for {name}...")
+    perplexity = min(30, max(5, len(data)//5))
+    tsne = TSNE(
+        n_components=2, 
+        random_state=42, 
+        perplexity=perplexity, 
+        n_iter=500,  # 减少迭代以节省资源
+        method='barnes_hut',  # 更快的方法
+        n_jobs=1  # 单线程避免资源争用
+    )
+    data_tsne = tsne.fit_transform(data)
+    
+    # UMAP
+    print(f"Running UMAP for {name}...")
+    n_neighbors = min(15, max(2, len(data)//5))
+    reducer = umap.UMAP(
+        n_components=2, 
+        random_state=42, 
+        n_neighbors=n_neighbors,
+        n_epochs=200,  # 减少训练轮数
+        low_memory=True
+    )
+    data_umap = reducer.fit_transform(data)
+    
+    # 绘制t-SNE
+    ax_tsne.scatter(data_tsne[labels==0, 0], data_tsne[labels==0, 1], 
+                     c='red', label='Negative', alpha=0.7, s=30)
+    ax_tsne.scatter(data_tsne[labels==1, 0], data_tsne[labels==1, 1], 
+                     c='blue', label='Positive', alpha=0.7, s=30)
+    ax_tsne.set_title(f't-SNE: {name}')
+    ax_tsne.legend()
+    
+    # 绘制UMAP
+    ax_umap.scatter(data_umap[labels==0, 0], data_umap[labels==0, 1], 
+                     c='red', label='Negative', alpha=0.7, s=30)
+    ax_umap.scatter(data_umap[labels==1, 0], data_umap[labels==1, 1], 
+                     c='blue', label='Positive', alpha=0.7, s=30)
+    ax_umap.set_title(f'UMAP: {name}')
+    ax_umap.legend()
+    
+    # 清理内存
+    gc.collect()
+
+def main():
+    """主函数"""
+    # 设置环境变量限制线程数
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    
+    # 设置路径
+    pos_dir = "/home/xycui/project/af3_binding/dataset/pos_tcrpmhc"
+    neg_dir = "/home/xycui/project/af3_binding/dataset/neg_tcrpmhc"
+    output_dir = "/home/xycui/project/af3_binding/interface_analysis"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 加载数据 - 限制样本数以节省资源
+    max_samples = 1000  # 每类最多处理的样本数
+    
+    # 提取特征
+    pos_data = load_embeddings(pos_dir, label=1, max_samples=max_samples)
+    neg_data = load_embeddings(neg_dir, label=0, max_samples=max_samples)
+    
+    # 合并数据
+    all_data = pos_data + neg_data
+    
+    if len(all_data) < 10:
+        print("样本数量过少，无法进行有效分析")
+        return
+    
+    print(f"分析 {len(all_data)} 个样本 (正样本: {len(pos_data)}, 负样本: {len(neg_data)})")
+    
+    # 创建画布
+    fig, axes = plt.subplots(3, 2, figsize=(14, 18))
+    
+    # 提取数据
+    emb_data = {
+        'CDR3a-peptide': np.array([e['cdr3a_peptide'] for e in all_data]),
+        'CDR3b-peptide': np.array([e['cdr3b_peptide'] for e in all_data]),
+        'CDR3ab-peptide': np.array([e['cdr3ab_peptide'] for e in all_data])
+    }
+    labels = np.array([e['label'] for e in all_data])
+    
+    # 对每种界面单独处理，一次处理一个
+    for i, (name, data) in enumerate([
+        ('CDR3a-peptide', emb_data['CDR3a-peptide']),
+        ('CDR3b-peptide', emb_data['CDR3b-peptide']),
+        ('CDR3ab-peptide', emb_data['CDR3ab-peptide'])
+    ]):
+        reduce_and_plot(name, data, labels, axes[i, 0], axes[i, 1])
+        # 清理内存
+        gc.collect()
+    
+    # 保存图像
+    plt.tight_layout()
+    output_file = os.path.join(output_dir, 'cdr3_peptide_interfaces.png')
+    plt.savefig(output_file, dpi=300)
+    print(f"图像已保存至 {output_file}")
+    
+    # 评估区分能力 - 使用轻量级方法
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import cross_val_score
+    
+    print("评估分类性能（使用轻量级配置）...")
+    for name, data in emb_data.items():
+        # 使用较少的树
+        clf = RandomForestClassifier(n_estimators=50, max_depth=10, random_state=42, n_jobs=1)
+        # 使用较少的折数
+        scores = cross_val_score(clf, data, labels, cv=3)
+        print(f"{name} 界面特征分类准确率: {scores.mean():.4f} ± {scores.std():.4f}")
+        # 清理内存
+        gc.collect()
+    
+    plt.show()
+
+if __name__ == "__main__":
+    main()

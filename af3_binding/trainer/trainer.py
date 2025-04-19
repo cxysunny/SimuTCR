@@ -28,6 +28,15 @@ class BDtrainer:
 
         self.model = Model(**config['model']).to(self.device)
         # self.model = SimpleModel(**config['model']).to(self.device)
+        # 模型创建后
+        first_block = self.model.pairformer.blocks[0]
+        num_blocks = len(self.model.pairformer.blocks)
+        print("\n==== 配置参数验证 ====")
+        print(f"配置中num_blocks: {config['model']['model_config']['num_blocks']} | 实际num_blocks: {num_blocks}")
+        # print(f"配置中dim: {config['model']['model_config']['dim']} | 实际dim: {first_block.pair_update.tri_mul_out.dim}")
+        print(f"配置中num_heads: {config['model']['model_config']['num_heads']} | 实际num_heads: {first_block.single_update.attn.num_heads}")
+        print(f"配置中dropout: {config['model']['model_config']['dropout']} | 实际dropout率: {first_block.pair_update.dropout_row.dropout.p}")
+
 
         total_params = sum(p.numel() for p in self.model.parameters())
         logging.info(f'total trainable params: {total_params}')
