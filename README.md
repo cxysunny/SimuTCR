@@ -3,7 +3,10 @@
 ## ⭐️ Introduction
 This repository contains the source code for the paper “SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction.”
 
-[SimuTCR overview](./overview.pdf)
+[SimuTCR overview](./SimuTCR_overview.png)
+<img width="27858" height="9406" alt="cef15b63d4a1b8ff48f575382ab34748" src="https://github.com/user-attachments/assets/59388614-45f2-4216-9454-04ad2663bfb8" />
+
+
 
 SimuTCR is a Structure-informed multimodal model for jointly modeling the binding specificity of TCR α, TCR β, MHC, and peptide. Our approach integrates a sequence channel—designed to capture amino acid usage specificity by residue-lvel MoE and make MHC-restricted prediction—with a structure channel enhanced by AlphaFold3-generated features to capture the fusion knowledge of structure and sequence. 
 
@@ -15,14 +18,14 @@ SimuTCR is a Structure-informed multimodal model for jointly modeling the bindin
 git clone https://github.com/WangLabTHU/SimuTCR.git
 ```
 
-	2. Create a virtual environment by conda.
+2. Create a virtual environment by conda.
 
 ```bash
 conda create -n SimuTCR python=3.9.21
 conda activate SimuTCR
 ```
 
-​	3. Install required Python packages.
+3. Install required Python packages.
 
 ```bash
 pip install -r requirements.txt
@@ -42,7 +45,7 @@ After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/`
 To train our model, just run
 
 ```
-python -m ./af3_binding/scripts.train
+python -m ./scripts.train
 ```
 
 The config file contains the settings of dataset type and hyperparameters.
@@ -50,23 +53,22 @@ The config file contains the settings of dataset type and hyperparameters.
 In this repo, we provide a example config file for our model in `./config`. 
 
 
-## 2. Inference 
+### 2. Inference 
 
 
-Scripts with specific functions are provided in `./scripts/`:`
-- `testoverlap.py`
-- `testunseen.py`
+Scripts with specific functions are provided in `./af3_binding/`:`
+- `test.py`
+
 
 To test our model, just run: 
 
 ```
-python testoverlap.py
-python testunseen.py
+python ./af3_binding/test.py
 ```
 
 > Note: Remenber to modify the checkpoint_path and datasets_path to suit your needs. To reproduce our results, just follow the default setting. if 
 
 ### 🧬 Inference on your own dataset
 
-1.📄  Put your `.csv` file in dataset with format like below (e.g. `dataset/example.csv`): 
+Put your `.csv` file in dataset with format like below (e.g. `./dataset/example.csv`): 
 
