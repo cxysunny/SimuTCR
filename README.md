@@ -67,5 +67,5 @@ python ./af3_binding/test.py
 
 ### 🧬 Inference on your own dataset
 
-1. Put your `.csv` file in dataset with format like below (e.g. `./dataset/example.csv`): 
+Put your `.csv` file in dataset with format like below (e.g. `./dataset/example.csv`): 
 
