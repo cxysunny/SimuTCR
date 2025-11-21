@@ -1,7 +1,6 @@
 # 忽略数据集目录
 dataset/
 results/
-scripts/
 explain/
 interface_analysis/
 log/
