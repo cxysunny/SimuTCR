@@ -3,7 +3,8 @@
 ## ⭐️ Introduction
 This repository contains the source code for the paper “SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction.”
 
-[SimuTCR overview](./overview.png)
+[SimuTCR overview](./SimuTCR_overview.png)
+
 
 SimuTCR is a Structure-informed multimodal model for jointly modeling the binding specificity of TCR α, TCR β, MHC, and peptide. Our approach integrates a sequence channel—designed to capture amino acid usage specificity by residue-lvel MoE and make MHC-restricted prediction—with a structure channel enhanced by AlphaFold3-generated features to capture the fusion knowledge of structure and sequence. 
 
