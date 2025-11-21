@@ -60,7 +60,7 @@ Scripts with specific functions are provided in `./af3_binding/`:`
 To test our model, just run: 
 
 ```
-python test.py
+python ./af3_binding/test.py
 ```
 
 > Note: Remenber to modify the checkpoint_path and datasets_path to suit your needs. To reproduce our results, just follow the default setting. if 
