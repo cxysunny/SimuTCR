@@ -4,7 +4,7 @@
 This repository contains the source code for the paper “SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction.”
 
 [SimuTCR overview](./SimuTCR_overview.png)
-![Uploading cef15b63d4a1b8ff48f575382ab34748.png…]()
+<img width="27858" height="9406" alt="cef15b63d4a1b8ff48f575382ab34748" src="https://github.com/user-attachments/assets/59388614-45f2-4216-9454-04ad2663bfb8" />
 
 
 
