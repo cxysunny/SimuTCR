@@ -53,7 +53,7 @@ The config file contains the settings of dataset type and hyperparameters.
 In this repo, we provide a example config file for our model in `./config`. 
 
 
-## 2. Inference 
+### 2. Inference 
 
 
 Scripts with specific functions are provided in `./af3_binding/`:`
