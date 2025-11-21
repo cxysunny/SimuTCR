@@ -1,11 +1,14 @@
 # outputs
 output_dir: ./results
-name: 
+# name: seq_only_9.12_cuda2
+name: seq_plus_structure_10.28_nopair
+
+# name: seq_plus_structure_6.27
 
 # training settings
 alphabet: &alphabet ./config/alphabet.yml
 previous_checkpoint: 
-num_epochs: 200
+num_epochs: 10
 seed: 1234
 device: &device cuda:2
 
@@ -23,14 +26,56 @@ model:
     vb_dim: 32
     jb_dim: 32
     hla_dim: 32
+    use_single_embed: True
+    use_pair_embed: True
+    mask_prob: 0.15
   model_config:
-    num_blocks: 2
-    dim: 128
+    num_blocks: 4
+    dim: *dim
     num_heads: 4
-    dropout: 0.3
-  # dim: 128
+    dropout: 0.2
+  hla_config:
+    aa_embedding_dim: 10
+    activation: gelu
+    c_out: 64
+    cat_embedding_dim: 8
+    cat_encoding: embedding
+    d_ff: 2048
+    d_layers: 1
+    d_model: 128
+    dataset: kaggles
+    dec_in: 14
+    dropout: 0.1
+    e_layers: 2
+    embed: fixed
+    enc_a: 34
+    enc_b: 28
+    enc_in: 62
+    encoding_dim: 100
+    factor: 1
+    freq: h
+    gpu: 0
+    iter: 0
+    lr: 0.001
+    lstm_dim: 500
+    max_epochs: 20
+    model: hla_moe
+    moving_avg: 25
+    n_heads: 8
+    tcr_encoding_model: transformer
+    use_alpha: true
+    use_mhc: true
+    use_t_type: false
+    use_vj: true
+    wd: 1.0e-05
+
+  mlm_config:
+    # weight: 0.2
+    # mask_prob: 0.15
+      
+  # dim: *dim
   # use_seqfeat: True
-  # n_tgt_attn: 2  
+  # n_tgt_attn: 2
 
 dataset:
   data_dir: ./dataset
@@ -42,16 +87,16 @@ dataset:
   peptide_vocab: *alphabet
 
 dataloader:
-  batch_size: 64
+  batch_size: 48
   shuffle: True
-  num_workers: 8
+  num_workers: 1
 
 optimizer:
   lr: 0.003
-  weight_decay: 0.001
+  weight_decay: 0.0001
 
 scheduler:
-  step_size: 20
+  step_size: 10
   gamma: 0.5
 
 # logging settings
@@ -82,3 +127,4 @@ logger:
         handlers:
         - console
         - info_file_handler
+

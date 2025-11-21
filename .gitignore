@@ -2,6 +2,14 @@
 dataset/
 results/
 scripts/
+explain/
+interface_analysis/
+log/
+mhc/
+pair_embed/
+pairembed/
+single_embed/
+statistic/
 # 忽略日志文件
 output.log
 output4312.log
@@ -15,3 +23,12 @@ __pycache__/
 .vscode/
 *.png
 mhc/mhcjson/
+
+train.log6.2
+train.log6.3
+todo.md
+nohup.out
+
+*.csv
+
+af3_binding/Version.md

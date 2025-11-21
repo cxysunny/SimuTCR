@@ -16,7 +16,7 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
     iedb_neg = pd.read_csv(osp.join(data_dir, 'iedb_negatives.csv'))
     data = []
     for i in range(len(iedb_pos)):
-        if not osp.exists(osp.join(data_dir, 'iedb_pos_v2', f'{i}')):
+        if not osp.exists(osp.join(data_dir, 'pos_tcrpmhc', f'{i}')):
             continue
         data.append(
             {
@@ -31,15 +31,15 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
                 'jb': iedb_pos.loc[i, 'Jb'],
                 'peptide': iedb_pos.loc[i, 'Peptide'],
 
-                'embedding_dir': osp.join(data_dir, 'iedb_pos_v2', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
-                'confidence_dir': osp.join(data_dir, 'iedb_pos_v2', f'{i}/{i}_confidences.json'),
-                'model_dir': osp.join(data_dir, 'iedb_pos_v2', f'{i}/{i}_model.cif'),
+                'embedding_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
+                'confidence_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/{i}_confidences.json'),
+                'model_dir': osp.join(data_dir, 'pos_tcrpmhc', f'{i}/{i}_model.cif'),
 
                 'label': 1
             }
         )
     for i in range(len(iedb_neg)):
-        if not osp.exists(osp.join(data_dir, 'iedb_neg_v2', f'{i}')):
+        if not osp.exists(osp.join(data_dir, 'neg_tcrpmhc', f'{i}')):
             continue
         data.append(
             {
@@ -54,9 +54,9 @@ def get_train_and_test_dataset(data_dir, test_size=0.2, seed=1234, **kwargs):
                 'jb': iedb_neg.loc[i, 'Jb'],
                 'peptide': iedb_neg.loc[i, 'Peptide'],
 
-                'embedding_dir': osp.join(data_dir, 'iedb_neg_v2', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
-                'confidence_dir': osp.join(data_dir, 'iedb_neg_v2', f'{i}/{i}_confidences.json'),
-                'model_dir': osp.join(data_dir, 'iedb_neg_v2', f'{i}/{i}_model.cif'),
+                'embedding_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/seed-{seed}_embeddings/{i}_seed-{seed}_embeddings.npz'),
+                'confidence_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/{i}_confidences.json'),
+                'model_dir': osp.join(data_dir, 'neg_tcrpmhc', f'{i}/{i}_model.cif'),
 
                 'label': 0
             }
@@ -134,7 +134,7 @@ class IEDBDataset(Dataset):
         # 然后从该路径获取样本 ID
         sample_id = osp.basename(sample_dir)
         # 缓存路径形如 .../neg_tcrpmhc/0/0.pt
-        cache_file = osp.join(sample_dir, f"{sample_id}.pt")
+        cache_file = osp.join(sample_dir, f"{sample_id}_token.pt")
         return cache_file
 
     def __getitem__(self, idx):
@@ -142,7 +142,7 @@ class IEDBDataset(Dataset):
 
         # 如果缓存文件已存在，直接加载
         if osp.exists(cache_path):
-            print(f"Loading cached data from {cache_path}")
+            # print(f"Loading cached data from {cache_path}")
             return torch.load(cache_path)
 
         # 如果缓存文件不存在，正常加载和处理数据
@@ -157,12 +157,20 @@ class IEDBDataset(Dataset):
         with open(meta_data['confidence_dir'], 'r') as f:
             confidence = json.load(f)
         model = self.parser.get_structure('model', meta_data['model_dir'])[0]
-
+        # print(cdr3a, cdr3b, peptide)
         # sequence encoding
         seq = cdr3a + cdr3b + peptide
+
         seq_tokens = self.peptide_tokenizer.encode(seq, as_one_token=False)  # [L]
         seq_tokens = torch.tensor(seq_tokens, dtype=torch.long)
+        cdr3a_tokens = self.peptide_tokenizer.encode(cdr3a, as_one_token=False)  # [L]
+        cdr3a_tokens = torch.tensor(cdr3a_tokens, dtype=torch.long)  # [L]
+        cdr3b_tokens = self.peptide_tokenizer.encode(cdr3b, as_one_token=False)  # [L]
+        cdr3b_tokens = torch.tensor(cdr3b_tokens, dtype=torch.long)  # [L]
+        peptide_tokens = self.peptide_tokenizer.encode(peptide, as_one_token=False)
+        peptide_tokens = torch.tensor(peptide_tokens, dtype=torch.long)
 
+        
         s0 = tcra.find(cdr3a)
         s1 = len(tcra) + tcrb.find(cdr3b)
         s2 = len(tcra) + len(tcrb)
@@ -210,6 +218,10 @@ class IEDBDataset(Dataset):
             'jb_token': jb_token,
             'hla_token': hla_token,
 
+            'cdr3a_tokens': cdr3a_tokens,
+            'cdr3b_tokens': cdr3b_tokens,
+            'peptide_tokens': peptide_tokens,
+
             'label': torch.tensor(meta_data['label'])
         }
 
@@ -222,6 +234,9 @@ def collate_fn(batch):
     batch.sort(key=lambda x: x['seq_tokens'].size(0), reverse=True)
     # single features, padding to [max_len, dim]
     seq_tokens = pad_sequence([x['seq_tokens'] for x in batch], batch_first=True, padding_value=0) #[B,L]
+    cdr3a_tokens = pad_sequence([x['cdr3a_tokens'] for x in batch], batch_first=True, padding_value=0) #[B,L1]
+    cdr3b_tokens = pad_sequence([x['cdr3b_tokens'] for x in batch], batch_first=True, padding_value=0) #[B,L2]
+    peptide_tokens = pad_sequence([x['peptide_tokens'] for x in batch], batch_first=True, padding_value=0) #[B,L3]
     embedding_single = pad_sequence([x['embedding_single'] for x in batch], batch_first=True, padding_value=0) #[B,L,384]
     chain_encoding = pad_sequence([x['chain_encoding'] for x in batch], batch_first=True, padding_value=0) #[B,L]
     plddts = pad_sequence([x['plddts'] for x in batch], batch_first=True, padding_value=0) #[B,L]
@@ -256,6 +271,9 @@ def collate_fn(batch):
         'vb_token': vb_token, # [batch_size]
         'jb_token': jb_token, # [batch_size]
         'hla_token': hla_token, # [batch_size]
+        'cdr3a_tokens': cdr3a_tokens,
+        'cdr3b_tokens': cdr3b_tokens,
+        'peptide_tokens': peptide_tokens,
         'label': label # [batch_size]
     }
 
