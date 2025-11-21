@@ -15,14 +15,14 @@ SimuTCR is a Structure-informed multimodal model for jointly modeling the bindin
 git clone https://github.com/WangLabTHU/SimuTCR.git
 ```
 
-	2. Create a virtual environment by conda.
+2. Create a virtual environment by conda.
 
 ```bash
 conda create -n SimuTCR python=3.9.21
 conda activate SimuTCR
 ```
 
-​	3. Install required Python packages.
+3. Install required Python packages.
 
 ```bash
 pip install -r requirements.txt
