@@ -42,7 +42,7 @@ After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/`
 To train our model, just run
 
 ```
-python -m ./af3_binding/scripts.train
+python -m ./scripts.train
 ```
 
 The config file contains the settings of dataset type and hyperparameters.
@@ -53,15 +53,14 @@ In this repo, we provide a example config file for our model in `./config`.
 ## 2. Inference 
 
 
-Scripts with specific functions are provided in `./scripts/`:`
-- `testoverlap.py`
-- `testunseen.py`
+Scripts with specific functions are provided in `./af3_binding/`:`
+- `test.py`
+
 
 To test our model, just run: 
 
 ```
-python testoverlap.py
-python testunseen.py
+python test.py
 ```
 
 > Note: Remenber to modify the checkpoint_path and datasets_path to suit your needs. To reproduce our results, just follow the default setting. if 
