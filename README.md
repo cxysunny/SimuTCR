@@ -34,9 +34,9 @@ pip install -r requirements.txt
 > Note: The version of our implemention is 2.3.1+cu121. Prepare your own PyTorch with your CUDA version. 
 
 You can download the datasets and model checkpints from 
-[https://drive.google.com/drive/folders/1F0lrMcukm1E_aarWf_Xx1vA0SM-VRFlg?usp=sharing](https://drive.google.com/drive/folders/1F0lrMcukm1E_aarWf_Xx1vA0SM-VRFlg?usp=sharing)
+[Datasets and checkpoints](https://zenodo.org/records/17695854)
 
-After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/` and `./models_saved/` folders
+After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/` and `./models_saved/` folders. Remember to modify the related model_paths in  `test` named python file.
 
 # Usage
 
@@ -66,9 +66,12 @@ To test our model, just run:
 python ./af3_binding/test.py
 ```
 
-> Note: Remenber to modify the checkpoint_path and datasets_path to suit your needs. To reproduce our results, just follow the default setting. if 
+> Note: Remenber to modify the checkpoint_path and datasets_path to suit your needs. To reproduce our results, just follow the default setting.  
 
 ### 🧬 Inference on your own dataset
 
 Put your `.csv` file in dataset with format like below (e.g. `./dataset/example.csv`): 
+
+## License
+MIT License 
 
