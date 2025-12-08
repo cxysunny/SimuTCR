@@ -315,7 +315,7 @@ def load_config_from_checkpoint_dir(checkpoint_dir):
     return config
 
 # 使用示例
-# checkpoint_dir = "/home/xycui/project/af3_binding/results/tcr_pmhc_emb"
+# checkpoint_dir = "./results/tcr_pmhc_emb"
 # config = load_config_from_checkpoint_dir(checkpoint_dir)
 
 def main():
@@ -348,7 +348,7 @@ def main():
 
     
     # 词汇表路径
-    vocab_dir = "/home/xycui/project/af3_binding/config"
+    vocab_dir = "./config"
     va_vocab = os.path.join(vocab_dir, "va_config.yml")
     ja_vocab = os.path.join(vocab_dir, "ja_config.yml")
     vb_vocab = os.path.join(vocab_dir, "vb_config.yml")
