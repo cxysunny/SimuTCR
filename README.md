@@ -36,7 +36,8 @@ pip install -r requirements.txt
 You can download the datasets and model checkpints from 
 [Datasets and checkpoints](https://zenodo.org/records/17695854)
 
-After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/` and `./models_saved/` folders. Remember to modify the related model_paths in  `test` named python file.
+After downloading, unzip the downloaded datasets/checkpoints in the `./datasets/` and `./results/` folders. (e.g data`./datasets/test_immrep23_unseen/0/0_token.pt` checkpoint `./datasets/unseen.pt`)
+Remember to modify the related model_paths in  `test` named python file.
 
 # Usage
 
@@ -70,7 +71,7 @@ python ./af3_binding/test.py
 
 ### 🧬 Inference on your own dataset
 
-Put your `.csv` file in dataset with format like below (e.g. `./dataset/example.csv`): 
+Put your `.csv` file in dataset with format like below (e.g. `./datasets/test_unseen.csv`): 
 
 ## License
 MIT License 
