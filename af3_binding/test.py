@@ -227,10 +227,6 @@ def evaluate(model, dataloader, device):
             
             scores =outputs['binding_pred']
 
-            if count in target:
-                model.moe_mhc.plot_moe(str(count))
-                print(count,torch.sigmoid(scores))
-
             preds = torch.sigmoid(scores) > 0.5
             
             # 收集结果
@@ -295,7 +291,7 @@ def evaluate(model, dataloader, device):
         'labels': all_labels
     }
 
-def load_config_from_checkpoint_dir(checkpoint_dir):
+def load_config_from_checkpoint_dir():
     """
     从检查点目录加载配置文件
     
@@ -305,7 +301,7 @@ def load_config_from_checkpoint_dir(checkpoint_dir):
     Returns:
         配置字典
     """
-    config_path = os.path.join(checkpoint_dir, "config.yml")
+    config_path = os.path.join("./config/config.yml")
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"配置文件不存在: {config_path}")
     
@@ -314,9 +310,7 @@ def load_config_from_checkpoint_dir(checkpoint_dir):
     
     return config
 
-# 使用示例
-# checkpoint_dir = "./results/tcr_pmhc_emb"
-# config = load_config_from_checkpoint_dir(checkpoint_dir)
+
 
 def main():
     # 设置设备
@@ -327,13 +321,13 @@ def main():
    
     model_name = "unseen"     # 模型名称
                   
-    # model_name = "seq_pus_structure_6.10_WBCE"
+    
     # 配置路径
     test_csv = "./datasets/test_unseen.csv"
     test_dir = "./datasets/test_immrep23_unseen"
     model_weights = "./results/"+ model_name +".pt"
     checkpoint_dir = "./results/"+ model_name 
-    config = load_config_from_checkpoint_dir(checkpoint_dir)
+    config = load_config_from_checkpoint_dir()
     feature_config = config["model"]["feature_config"]
     model_config = config["model"]["model_config"]
     hla_config = config["model"]["hla_config"]
@@ -366,20 +360,13 @@ def main():
         collate_fn=collate_fn
     )
     
-    i = 0
-    # for batch in test_loader:
-    #     i += 1
-    #     if i == 16:
-    #         for name in batch.keys():
-    #             print(name,batch[name][4])
-            # print(batch['peptide_tokens'][43],batch['label'][43],batch['cdr3b_tokens'][43])
-        # 创建模型
+    
     model = Model(feature_config, model_config,hla_config,mlm_config)
     
 
     # 加载预训练权重
     checkpoint = torch.load(model_weights, map_location=device)
-    print(f"检查点中的键: {list(checkpoint.keys())}")
+    # print(f"检查点中的键: {list(checkpoint.keys())}")
     # 不使用'model_state_dict'键，而是直接加载整个状态字典
     try:
         model.load_state_dict(checkpoint)
@@ -399,7 +386,7 @@ def main():
     # 评估模型
     results = evaluate(model, test_loader, device)
     
-    # model.moe_mhc.plot_moe(model_name)
+    # model.moe_mhc.(model_name)
 
     # 保存预测结果
     df = pd.DataFrame({
@@ -407,8 +394,9 @@ def main():
         'predicted': results['predictions'],
         'score': results['scores']
     })
-    df.to_csv('./results/' + model_name + '/'+'predict.csv', index=False)
+    df.to_csv('./results/predict.csv', index=False)
     print("Saved predictions to test_predictions.csv")
 
 if __name__ == "__main__":
     main()
+
