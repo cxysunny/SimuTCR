@@ -323,21 +323,15 @@ def main():
     device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    #structure
-    # model_name = "4block_3lossweight"
-    # epoch_name = 'epoch_20'
-    # seq
-    # model_name = "seq_only"
-    # epoch_name = 'epoch_30'
     
-    # model_name = "seq_plus_structure_6.23"
-    model_name = "seq_plus_structure_9.23"     # 模型名称
-    epoch_name = 'epoch_10'                
+   
+    model_name = "unseen"     # 模型名称
+                  
     # model_name = "seq_pus_structure_6.10_WBCE"
     # 配置路径
-    test_csv = "./dataset/test_immrep23_unseen.csv"
-    test_dir = "./dataset/test_immrep23_unseen"
-    model_weights = "./results/"+ model_name +"/model_weights/"+epoch_name+".pt"
+    test_csv = "./datasets/test_unseen.csv"
+    test_dir = "./datasets/test_immrep23_unseen"
+    model_weights = "./results/"+ model_name +".pt"
     checkpoint_dir = "./results/"+ model_name 
     config = load_config_from_checkpoint_dir(checkpoint_dir)
     feature_config = config["model"]["feature_config"]
@@ -413,7 +407,7 @@ def main():
         'predicted': results['predictions'],
         'score': results['scores']
     })
-    df.to_csv('./results/' + model_name + '/'+epoch_name+'predict.csv', index=False)
+    df.to_csv('./results/' + model_name + '/'+'predict.csv', index=False)
     print("Saved predictions to test_predictions.csv")
 
 if __name__ == "__main__":
