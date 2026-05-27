@@ -13,9 +13,9 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, precision_recall_curve, average_precision_score, roc_curve
 
 from visualizer import get_local
-get_local.activate() # 激活装饰器
+get_local.activate() 
 
-# 添加项目根目录到系统路径
+
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from model.model import Model
@@ -40,7 +40,7 @@ class TestDataset(Dataset):
                  va_vocab, ja_vocab, vb_vocab, jb_vocab,
                  hla_vocab, peptide_vocab):
         self.data_df_full = pd.read_csv(csv_file)
-        # 过滤掉没有对应文件夹的样本
+       
         valid_data = []
         for i in range(len(self.data_df_full)):
             if os.path.exists(os.path.join(test_dir, str(i))):
@@ -48,7 +48,7 @@ class TestDataset(Dataset):
                 row['original_idx'] = i
                 valid_data.append(row)
 
-        # 创建新的DataFrame
+       
         self.data_df = pd.DataFrame(valid_data)
         print(f"有效样本数: {len(self.data_df)}/{len(self.data_df_full)}")
         # print(self.data_df)
@@ -97,12 +97,12 @@ class TestDataset(Dataset):
         cache_path = self._get_cache_path(idx)
 
         global get_index
-        # 如果缓存文件已存在，直接加载
+        
         if osp.exists(cache_path):
             # print(f"Loading cached data from {cache_path}")
             return torch.load(cache_path)
  
-        # 如果缓存文件不存在，正常加载和处理数据
+       
         row = self.data_df.iloc[idx]
         original_idx = row['original_idx']
         
@@ -120,7 +120,7 @@ class TestDataset(Dataset):
             if not osp.exists(path):
                 raise FileNotFoundError(f"File not found: {path}")
 
-        # 获取数据
+        
         cdr3a = row['CDR3a'] if not pd.isna(row['CDR3a']) else ""
         cdr3b = row['CDR3b'] if not pd.isna(row['CDR3b']) else ""
         peptide = row['Peptide'] if not pd.isna(row['Peptide']) else ""
@@ -151,7 +151,7 @@ class TestDataset(Dataset):
         embedding_single = torch.tensor(embedding['single_embeddings'], dtype=torch.float32)  # [L_, 384]
         embedding_pair = torch.tensor(embedding['pair_embeddings'], dtype=torch.float32)  # [L_, L_, 128]
 
-        # 提取 cdr3a, cdr3b, peptide 的 embedding
+        #cdr3a, cdr3b, peptide embedding
         consider = list(range(s0, s0 + len(cdr3a))) + list(range(s1, s1 + len(cdr3b))) + list(range(s2, s2 + len(peptide)))
         embedding_single = embedding_single[consider]  # [L, 384]
         embedding_pair = embedding_pair[consider][:, consider]  # [L, L, 128]
@@ -174,7 +174,6 @@ class TestDataset(Dataset):
         pae_embedding = self._distance_embedding(pae)
         pae_embedding = pae_embedding[consider][:, consider]  # [L, L, 16]
 
-        # 构建返回值
         sample = {
             # [tcra + tcrb + peptide]
             'seq_tokens': seq_tokens,  # [L]
@@ -194,7 +193,6 @@ class TestDataset(Dataset):
             'label': torch.tensor(int(row['Label']))
         }
 
-        # 保存到缓存文件
         os.makedirs(osp.dirname(cache_path), exist_ok=True)
         torch.save(sample, cache_path)
 
@@ -209,15 +207,25 @@ def evaluate(model, dataloader, device):
     
     batch_size = 0
     count = 0
-    target = [1,2,3,4,5,6,7,8,60,659]
+    target = [] 
+    target_seq = []
+    # target_seq = torch.tensor([5,9,11,19,1,19,3,12,19], 
+    #                         device= torch.device('cpu') )
+    target_mhc = torch.tensor([1], 
+                           device= torch.device('cpu') )
     with torch.no_grad():
-        for batch in tqdm(dataloader, desc="评估进度", ncols=100):
-            # 将数据移到 GPU
+        for batch in tqdm(dataloader, desc="progress", ncols=100):
+            
             batch_device = {k: v.to(device) if isinstance(v, torch.Tensor) else v 
                            for k, v in batch.items()}
+            model.moe_mhc.discrete_record = True
             
-            # 前向传播
-
+            # QIKVRVDMV
+            # print(batch['hla_token'])
+            # if torch.equal(batch['peptide_tokens'][0], target_seq):
+            if torch.equal(batch['hla_token'], target_mhc):
+                print('pairing')
+                model.moe_mhc.discrete_record = None
             if count in target:
                 model.moe_mhc.moe_hook = None
 
@@ -227,14 +235,18 @@ def evaluate(model, dataloader, device):
             
             scores =outputs['binding_pred']
 
+            if count in target:
+                model.moe_mhc.plot_moe(str(count))
+                print(count,torch.sigmoid(scores))
+
             preds = torch.sigmoid(scores) > 0.5
             
-            # 收集结果
+    
             all_scores.extend(torch.sigmoid(scores).cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(batch['label'].cpu().numpy())
     
-    # 计算指标
+    
     accuracy = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds)
     recall = recall_score(all_labels, all_preds)
@@ -242,12 +254,11 @@ def evaluate(model, dataloader, device):
     auc = roc_auc_score(all_labels, all_scores)
     ap = average_precision_score(all_labels, all_scores)
     
-    # 对正样本和负样本的数量进行统计
+    
     pos_count = sum(all_labels)
     neg_count = len(all_labels) - pos_count
     
-    # 打印结果
-    print(f"正样本数量: {pos_count}, 负样本数量: {neg_count}")
+    print(f"positive: {pos_count}, negtive: {neg_count}")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
@@ -255,11 +266,11 @@ def evaluate(model, dataloader, device):
     print(f"ROC-AUC: {auc:.4f}")
     print(f"AUPR: {ap:.4f}")
     
-    # 计算ROC和PR曲线
+    
     fpr, tpr, _ = roc_curve(all_labels, all_scores)
     precision_curve, recall_curve, _ = precision_recall_curve(all_labels, all_scores)
     
-    # 绘制ROC曲线
+    # ROC
     plt.figure(figsize=(12, 5))
     plt.subplot(1, 2, 1)
     plt.plot(fpr, tpr)
@@ -268,7 +279,7 @@ def evaluate(model, dataloader, device):
     plt.ylabel('True Positive Rate')
     plt.title(f'ROC Curve (AUC = {auc:.4f})')
     
-    # 绘制PR曲线
+    # PR
     plt.subplot(1, 2, 2)
     plt.plot(recall_curve, precision_curve)
     plt.xlabel('Recall')
@@ -276,7 +287,7 @@ def evaluate(model, dataloader, device):
     plt.title(f'Precision-Recall Curve (AP = {ap:.4f})')
     
     plt.tight_layout()
-    plt.savefig('./results/AUC.png')
+    # plt.savefig('./results/AUC.png')
     plt.close()
     
     return {
@@ -291,17 +302,17 @@ def evaluate(model, dataloader, device):
         'labels': all_labels
     }
 
-def load_config_from_checkpoint_dir():
+def load_config_from_checkpoint_dir(checkpoint_dir):
     """
-    从检查点目录加载配置文件
+   
     
     Args:
-        checkpoint_dir: 检查点目录路径，包含config.yml文件
+        checkpoint_dir
     
     Returns:
-        配置字典
+        config
     """
-    config_path = os.path.join("./config/config.yml")
+    config_path = os.path.join(checkpoint_dir, "config.yml")
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"配置文件不存在: {config_path}")
     
@@ -311,23 +322,23 @@ def load_config_from_checkpoint_dir():
     return config
 
 
+# checkpoint_dir = "/home/xycui/project/af3_binding/results/tcr_pmhc_emb"
+# config = load_config_from_checkpoint_dir(checkpoint_dir)
 
 def main():
     # 设置设备
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
-    
-    
+                 
+    model_name = "seq_plus_structure_26.4.22"     
+    epoch_name = 'epoch_9'                
    
-    model_name = "unseen"     # 模型名称
-                  
+    test_csv = "./dataset/test_immrep23_unseen.csv"
+    test_dir = "./dataset/test_immrep23_unseen"
     
-    # 配置路径
-    test_csv = "./datasets/test_unseen.csv"
-    test_dir = "./datasets/test_immrep23_unseen"
-    model_weights = "./results/"+ model_name +".pt"
+    model_weights = "./results/"+ model_name +"/model_weights/"+epoch_name+".pt"
     checkpoint_dir = "./results/"+ model_name 
-    config = load_config_from_checkpoint_dir()
+    config = load_config_from_checkpoint_dir(checkpoint_dir)
     feature_config = config["model"]["feature_config"]
     model_config = config["model"]["model_config"]
     hla_config = config["model"]["hla_config"]
@@ -335,23 +346,21 @@ def main():
     mlm_config = None
 
     
-    # 词汇表路径
-    vocab_dir = "./config"
+
+    vocab_dir = "/home/xycui/project/af3_binding/config"
     va_vocab = os.path.join(vocab_dir, "va_config.yml")
     ja_vocab = os.path.join(vocab_dir, "ja_config.yml")
     vb_vocab = os.path.join(vocab_dir, "vb_config.yml")
     jb_vocab = os.path.join(vocab_dir, "jb_config.yml")
     hla_vocab = os.path.join(vocab_dir, "hla_config.yml")
     peptide_vocab = os.path.join(vocab_dir, "alphabet.yml")
-    
-    # 创建数据集
+
     test_dataset = TestDataset(
         test_csv, test_dir,
         va_vocab, ja_vocab, vb_vocab, jb_vocab,
         hla_vocab, peptide_vocab
     )
 
-    # 创建数据加载器
     test_loader = DataLoader(
         test_dataset, 
         batch_size=1,
@@ -360,22 +369,28 @@ def main():
         collate_fn=collate_fn
     )
     
-    
+    i = 0
+    # for batch in test_loader:
+    #     i += 1
+    #     if i == 16:
+    #         for name in batch.keys():
+    #             print(name,batch[name][4])
+            # print(batch['peptide_tokens'][43],batch['label'][43],batch['cdr3b_tokens'][43])
+
     model = Model(feature_config, model_config,hla_config,mlm_config)
     
 
-    # 加载预训练权重
+    
     checkpoint = torch.load(model_weights, map_location=device)
-    # print(f"检查点中的键: {list(checkpoint.keys())}")
-    # 不使用'model_state_dict'键，而是直接加载整个状态字典
+    print(f"key: {list(checkpoint.keys())}")
+
     try:
         model.load_state_dict(checkpoint)
-        print(f"成功加载模型权重：直接加载状态字典")
+        print(f"success")
     except Exception as e:
-        print(f"尝试直接加载状态字典失败: {e}")
-        # 如果加载失败，尝试非严格模式
+        print(f"fail: {e}")
         model.load_state_dict(checkpoint, strict=False)
-        print(f"成功加载模型权重：使用非严格模式")
+        print(f"success")
     # model.load_state_dict(checkpoint['model_state_dict'])
 
     # model.moe_mhc.moe_hook = True
@@ -383,20 +398,18 @@ def main():
     model = model.to(device)
     print(f"Loaded model weights from {model_weights}")
     
-    # 评估模型
+   
     results = evaluate(model, test_loader, device)
     
-    # model.moe_mhc.(model_name)
+    # model.moe_mhc.plot_moe(model_name)
 
-    # 保存预测结果
     df = pd.DataFrame({
         'true_label': results['labels'],
         'predicted': results['predictions'],
         'score': results['scores']
     })
-    df.to_csv('./results/predict.csv', index=False)
+    df.to_csv('./results/' + model_name + '/'+epoch_name+'overlap.csv', index=False)
     print("Saved predictions to test_predictions.csv")
 
 if __name__ == "__main__":
     main()
-
