@@ -1,6 +1,6 @@
 # outputs
 output_dir: ./results
-name: seq_plus_structure_26.4.22
+name: seq_plus_structure
 
 
 # training settings
