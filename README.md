@@ -35,7 +35,7 @@ You can download the datasets and model checkpints from
 [Datasets and checkpoints](https://zenodo.org/records/17695854)
 
 After downloading, unzip the downloaded datasets/checkpoints in the `./datasets/` and `./results/` folders. 
-(e.g data`./datasets/test_immrep23_unseen/0/0_token.pt`     checkpoint `./datasets/unseen.pt`)
+(e.g data`./datasets/test_immrep23_unseen/0/0_token.pt`     checkpoint `./results/unseen.pt`)
 Remember to modify the related model_paths in  `test` named python file.
 
 # Usage
