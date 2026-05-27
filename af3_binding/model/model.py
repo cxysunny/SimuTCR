@@ -353,7 +353,12 @@ class Model(nn.Module):
         # single_embedding[:,:,56:56+64] = single_embedding[:,:,56:56+64] + seq_embedding
         # print(single_embedding.shape)
         single, pair = self.pairformer(single_embedding, pair_embedding, single_mask, pair_mask)
- 
+
+        # # # 26.4.21 modify by wjc ,没用
+        # single = single_embedding + 0.1 * single   # 外部残差
+        # pair   = pair_embedding   + 0.1 * pair     # 外部残差
+        # # modify end
+        
         # 主任务：结合预测
         x = torch.cat([torch.mean(single, dim=1), point_embedding], dim=-1) 
 
@@ -400,7 +405,7 @@ class Model(nn.Module):
         })        
 
 
-        # MLM辅助任务
+        # MLM
         if self.do_mlm:
             mlm_logits = self.mlm_head(single)  # [B, L, aa_size]
             if is_train:
