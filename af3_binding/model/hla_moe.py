@@ -17,6 +17,7 @@ import math
 import random
 import itertools
 from visualizer import get_local
+from matplotlib.colors import LinearSegmentedColormap
 class RMSNorm(nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
         super().__init__()
@@ -30,6 +31,25 @@ class RMSNorm(nn.Module):
         output = self._norm(x.float()).type_as(x)
         return output * self.weight
 
+
+class DenseMLP(nn.Module):
+    """
+    用于MoE消融实验的稠密MLP。
+    隐藏维度设置为 num_experts * original_expert_hidden_dim,以保证参数量一致。
+    """
+    def __init__(self, dim, hidden_dim, activation=nn.GELU):
+        super().__init__()
+        self.fc1 = nn.Linear(dim, hidden_dim)
+        self.activation = activation()
+        self.fc2 = nn.Linear(hidden_dim, dim)
+
+    def forward(self, x):
+        # x shape: (batch, seq, dim)
+        out = self.fc2(self.activation(self.fc1(x)))
+        # 返回 (output, loss, combine_tensor) 以匹配 MoE 的接口
+        loss = torch.tensor(0.0, device=x.device)
+        return out, loss, None
+    
 class MOE_MHC(nn.Module):
 
     def __init__(self, hparams):
@@ -153,6 +173,12 @@ class MOE_MHC(nn.Module):
                 loss_coef = 1e-2                # multiplier on the auxiliary expert balancing auxiliary loss
                 )
 
+        self.moe_ablation_by_MLP = DenseMLP(
+                    dim=hparams.d_model,
+                    hidden_dim=16 * hparams.d_model,   # 保证总参数量与16个专家之和一致
+                    activation=nn.GELU
+                )
+            
         self.moe_ablation =  MoE(
                 dim = hparams.d_model,
                 num_experts = 1,               # increase the experts (# parameters) of your model without increasing computation
@@ -209,7 +235,9 @@ class MOE_MHC(nn.Module):
 
         # for 9.22 ver
         # self.align = nn.Linear(128, 128, bias=False)
-
+        self.do_moe_ablation = hparams.do_moe_ablation
+        self.discrete_record = None
+        self.moe_hook_batch_count = 0
     
     @get_local('seq_attn')   
     def forward(self, 
@@ -352,7 +380,10 @@ class MOE_MHC(nn.Module):
 
         aux_loss = 0
         #MOE layer
-        moe_out, aux_loss , combine_tensor= self.moe(all)
+        if self.do_moe_ablation:
+            moe_out, aux_loss , combine_tensor = self.moe_ablation_by_MLP(all)
+        else:
+            moe_out, aux_loss , combine_tensor= self.moe(all)
 
         all = self.layer_norm(moe_out + all)
 
@@ -365,10 +396,23 @@ class MOE_MHC(nn.Module):
         if not self.training:
             if self.moe_hook==None:
                 # print('record')
-                self.moe_hook = combine_tensor.mean(0).mean(2)
+                if combine_tensor == None:
+                    self.moe_hook = None
+                else:
+                    self.moe_hook = combine_tensor.mean(0).mean(2)
+                    self.moe_hook_batch_count = 1
             else:
                 # print('update')
-                self.moe_hook += combine_tensor.mean(0).mean(2)
+                if combine_tensor == None:
+                    self.moe_hook = None
+                else:
+                    if self.discrete_record != None:
+                        self.moe_hook = self.moe_hook 
+                        self.moe_hook_batch_count = self.moe_hook_batch_count
+                    else:
+                        print('record')
+                        self.moe_hook += combine_tensor.mean(0).mean(2)
+                        self.moe_hook_batch_count += 1
 
 
         all = all.reshape(-1,all.shape[1]*all.shape[2])
@@ -476,22 +520,158 @@ class MOE_MHC(nn.Module):
                 # print(i,pos1[i],pos2[i],pos3[i],copy_seq,seq)
         return copy_seq
 
-    
+    # def plot_moe(self, save_path=None, seperate=True):
+    #     # print(self.moe_hook)
+    #     # 创建画布
+    #     if self.moe_hook is not None and self.moe_hook_batch_count > 0:
+    #         self.moe_hook = self.moe_hook / self.moe_hook_batch_count
+    #     else:
+    #         self.moe_hook = self.moe_hook   # fallback
+    #     print(self.moe_hook_batch_count)
+    #     plt.rcParams['pdf.fonttype'] = 42
+    #     plt.rcParams['svg.fonttype'] = 'none'
+        
+    #     # Cell Genomics风格配色：浅青色到深蓝色
+    #     colors = [(0.90, 0.98, 0.98), (0.20, 0.40, 0.60)]  # 从浅青到深蓝
+    #     cmap = LinearSegmentedColormap.from_list("cell_genomics_cmap", colors, N=256)
+        
+    #     # 设置全局样式
+    #     plt.rcParams['font.family'] = 'sans-serif'
+    #     plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
+    #     plt.rcParams['font.size'] = 10
+        
+    #     # print(self.moe_hook.shape)
+    #     plt.clf()
+    #     if seperate:
+    #         fig, ax = plt.subplots(figsize=(9, 6))
+    #         # 绘制热图
+    #         sns.heatmap(
+    #             # here cut-off
+    #             self.moe_hook[:17].cpu().T,
+    #             annot=None,          # 显示数值
+    #             fmt=".2f",           # 数值格式
+    #             cmap=cmap,           # Cell Genomics配色
+    #             linewidths=0.3,      # 单元格边框线宽
+    #             linecolor="white",   # 边框颜色改为白色更干净
+    #             ax=ax,
+    #             cbar_kws={"shrink": 0.8, "label": "Frequency of expert usage"}  # 修正颜色条标签
+    #         )
+
+    #         # 添加标题和坐标轴标签 - Cell Genomics风格
+    #         ax.set_title("Expert usage per TCRα amino acid", fontsize=12, fontweight='bold', pad=10)
+    #         ax.set_xlabel("Token position", fontsize=10)
+    #         ax.set_ylabel("Expert index", fontsize=10)
+    #         ax.tick_params(labelsize=9)
+
+    #         # 调整布局
+    #         plt.tight_layout()
+    #         if save_path is not None:
+    #             print('save_plot moe')
+    #             plt.savefig("af3_binding/moe_fig/" + save_path + "tcra.svg", format='svg', dpi=300, bbox_inches='tight')
+    #         else:
+    #             plt.savefig("af3_binding/moe_fig/tcra.png", dpi=300, bbox_inches='tight')
+    #         plt.close(fig)
+            
+    #         fig, ax = plt.subplots(figsize=(8, 6))
+    #         sns.heatmap(
+    #             self.moe_hook[34:34+20].cpu().T,
+    #             annot=None,          # 显示数值
+    #             fmt=".2f",           # 数值格式
+    #             cmap=cmap,           # Cell Genomics配色
+    #             linewidths=0.3,      # 单元格边框线宽
+    #             linecolor="white",   # 边框颜色
+    #             ax=ax,
+    #             cbar_kws={"shrink": 0.8, "label": "Frequency of expert usage"}  # 修正颜色条标签
+    #         )
+
+    #         # 添加标题和坐标轴标签
+    #         ax.set_title("Expert usage per TCRβ amino acid", fontsize=12, fontweight='bold', pad=10)
+    #         ax.set_xlabel("Token position", fontsize=10)
+    #         ax.set_ylabel("Expert index", fontsize=10)
+    #         ax.tick_params(labelsize=9)
+
+    #         # 调整布局
+    #         plt.tight_layout()
+    #         if save_path is not None:
+    #             print('save_plot moe')
+    #             plt.savefig("af3_binding/moe_fig/" + save_path + "tcrb.svg", format='svg', dpi=300, bbox_inches='tight')
+    #         else:
+    #             plt.savefig("af3_binding/moe_fig/tcrb.png", dpi=300, bbox_inches='tight')
+    #         plt.close(fig)
+            
+    #         fig, ax = plt.subplots(figsize=(4, 6))
+    #         sns.heatmap(
+    #             self.moe_hook[62:72].cpu().T,
+    #             annot=None,          # 显示数值
+    #             fmt=".2f",           # 数值格式
+    #             cmap=cmap,           # Cell Genomics配色
+    #             linewidths=0.3,      # 单元格边框线宽
+    #             linecolor="white",   # 边框颜色
+    #             ax=ax,
+    #             cbar_kws={"shrink": 0.8, "label": "Frequency of expert usage"}  # 修正颜色条标签
+    #         )
+
+    #         # 添加标题和坐标轴标签
+    #         ax.set_title("Expert usage per peptide amino acid", fontsize=12, fontweight='bold', pad=10)
+    #         ax.set_xlabel("Token position", fontsize=10)
+    #         ax.set_ylabel("Expert index", fontsize=10)
+    #         ax.tick_params(labelsize=9)
+
+    #         # 调整布局
+    #         plt.tight_layout()
+    #         if save_path is not None:
+    #             print('save_plot moe')
+    #             plt.savefig("af3_binding/moe_fig/" + save_path + "pep.svg", format='svg', dpi=300, bbox_inches='tight')
+    #         else:
+    #             plt.savefig("af3_binding/moe_fig/pep.png", dpi=300, bbox_inches='tight')
+    #         plt.close(fig)
+    #     else:
+    #         fig, ax = plt.subplots(figsize=(21, 6))
+    #         # 绘制热图
+    #         sns.heatmap(
+    #             self.moe_hook.cpu().T,
+    #             annot=None,          # 显示数值
+    #             fmt=".2f",           # 数值格式
+    #             cmap=cmap,           # Cell Genomics配色
+    #             linewidths=0.3,      # 单元格边框线宽
+    #             linecolor="white",   # 边框颜色
+    #             ax=ax,
+    #             cbar_kws={"shrink": 0.8, "label": "Frequency of expert usage"}  # 修正颜色条标签
+    #         )
+
+    #         # 添加标题和坐标轴标签
+    #         ax.set_title("Expert usage per amino acid position", fontsize=12, fontweight='bold', pad=10)
+    #         ax.set_xlabel("Token position", fontsize=10)
+    #         ax.set_ylabel("Expert index", fontsize=10)
+    #         ax.tick_params(labelsize=9)
+
+    #         # 调整布局
+    #         plt.tight_layout()
+    #         if save_path is not None:
+    #             print('save_plot moe')
+    #             plt.savefig("moe_fig/" + save_path + "heatmap.svg", dpi=300, bbox_inches='tight', format='svg')
+    #         else:
+    #             plt.savefig("moe_fig/heatmap.png", dpi=300, bbox_inches='tight')
+    #         plt.close(fig)
     def plot_moe(self,save_path=None,seperate = True):
         # print(self.moe_hook)
         # 创建画布
+        if self.moe_hook is not None and self.moe_hook_batch_count > 0:
+            self.moe_hook  = self.moe_hook / self.moe_hook_batch_count
+        else:
+            avg_hook = self.moe_hook   # fallback
 
-        
         plt.rcParams['pdf.fonttype'] = 42
         plt.rcParams['svg.fonttype'] = 'none'
 
-        print(self.moe_hook.shape)
+        # print(self.moe_hook.shape)
         plt.clf()
         if seperate:
             fig, ax = plt.subplots(figsize=(9, 6))
             # 绘制热图
             sns.heatmap(
-                self.moe_hook[:34].cpu().T,
+                #here cut-off
+                self.moe_hook[:17].cpu().T,
                 annot=None,          # 显示数值
                 fmt=".2f",           # 数值格式
                 cmap="RdPu",     # 颜色映射
@@ -510,13 +690,13 @@ class MOE_MHC(nn.Module):
             plt.tight_layout()
             if save_path is not None:
                 print('save_plot moe')
-                plt.savefig("moe_fig/" + save_path + "tcra.svg",format='svg', dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/" + save_path + "tcra.svg",format='svg', dpi=300, bbox_inches='tight')
             else:
-                plt.savefig("moe_fig/tcra.png", dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/tcra.png", dpi=300, bbox_inches='tight')
             fig.clf()
             fig, ax = plt.subplots(figsize=(8, 6))
             sns.heatmap(
-                self.moe_hook[34:34+28].cpu().T,
+                self.moe_hook[34:34+20].cpu().T,
                 annot=None,          # 显示数值
                 fmt=".2f",           # 数值格式
                 cmap="RdPu",     # 颜色映射
@@ -535,13 +715,13 @@ class MOE_MHC(nn.Module):
             plt.tight_layout()
             if save_path is not None:
                 print('save_plot moe')
-                plt.savefig("moe_fig/" + save_path + "tcrb.svg",format='svg', dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/" + save_path + "tcrb.svg",format='svg', dpi=300, bbox_inches='tight')
             else:
-                plt.savefig("moe_fig/tcrb.png", dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/tcrb.png", dpi=300, bbox_inches='tight')
             fig.clf()
             fig, ax = plt.subplots(figsize=(4, 6))
             sns.heatmap(
-                self.moe_hook[62:].cpu().T,
+                self.moe_hook[62:72].cpu().T,
                 annot=None,          # 显示数值
                 fmt=".2f",           # 数值格式
                 cmap="RdPu",     # 颜色映射
@@ -560,9 +740,9 @@ class MOE_MHC(nn.Module):
             plt.tight_layout()
             if save_path is not None:
                 print('save_plot moe')
-                plt.savefig("moe_fig/" + save_path + "pep.svg",format='svg', dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/" + save_path + "pep.svg",format='svg', dpi=300, bbox_inches='tight')
             else:
-                plt.savefig("moe_fig/pep.png", dpi=300, bbox_inches='tight')
+                plt.savefig("af3_binding/moe_fig/pep.png", dpi=300, bbox_inches='tight')
         else:
             fig, ax = plt.subplots(figsize=(21, 6))
             # 绘制热图
