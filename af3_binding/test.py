@@ -322,9 +322,6 @@ def load_config_from_checkpoint_dir(checkpoint_dir):
     return config
 
 
-# checkpoint_dir = "/home/xycui/project/af3_binding/results/tcr_pmhc_emb"
-# config = load_config_from_checkpoint_dir(checkpoint_dir)
-
 def main():
     # 设置设备
     device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
@@ -333,8 +330,8 @@ def main():
     model_name = "seq_plus_structure_26.4.22"     
     epoch_name = 'epoch_9'                
    
-    test_csv = "./dataset/test_immrep23_unseen.csv"
-    test_dir = "./dataset/test_immrep23_unseen"
+    test_csv = "./dataset/test_unseen.csv"
+    test_dir = "./dataset/test_unseen"
     
     model_weights = "./results/"+ model_name +"/model_weights/"+epoch_name+".pt"
     checkpoint_dir = "./results/"+ model_name 
