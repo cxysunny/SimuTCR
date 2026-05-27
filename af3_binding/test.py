@@ -327,13 +327,14 @@ def main():
     device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
                  
-    model_name = "seq_plus_structure_26.4.22"     
+    model_name = "seq_plus_structure"     
     epoch_name = 'epoch_9'                
    
     test_csv = "./dataset/test_unseen.csv"
     test_dir = "./dataset/test_unseen"
     
     model_weights = "./results/"+ model_name +"/model_weights/"+epoch_name+".pt"
+    #model_weights = "./results/unseen.pt"
     checkpoint_dir = "./results/"+ model_name 
     config = load_config_from_checkpoint_dir(checkpoint_dir)
     feature_config = config["model"]["feature_config"]
