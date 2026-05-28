@@ -1,7 +1,7 @@
 # SimuTCR: Structure-informed multimodal learning enables generalizable TCR-pMHC binding prediction 
 
 ## ⭐️ Introduction
-This repository contains the source code for the paper “SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction.”
+This repository contains the source code for the paper “SimuTCR: Structure-informed multimodal learning enables generalizable TCR-pMHC binding prediction.”
 
 ![SimuTCR overview](./SimuTCR_overview.png)
 
