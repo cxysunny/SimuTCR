@@ -1,4 +1,4 @@
-# SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction	
+# SimuTCR: Structure-informed multimodal learning enables generalizable TCR-pMHC binding prediction 
 
 ## ⭐️ Introduction
 This repository contains the source code for the paper “SimuTCR: A Structure-Informed Multimodal Model with Residue-Level MoE for TCR–pMHC Binding Prediction.”
@@ -6,7 +6,7 @@ This repository contains the source code for the paper “SimuTCR: A Structure-I
 ![SimuTCR overview](./SimuTCR_overview.png)
 
 
-SimuTCR is a Structure-informed multimodal model for jointly modeling the binding specificity of TCR α, TCR β, MHC, and peptide. Our approach integrates a sequence channel—designed to capture amino acid usage specificity by residue-lvel MoE and make MHC-restricted prediction—with a structure channel enhanced by AlphaFold3-generated features to capture the fusion knowledge of structure and sequence. 
+SimuTCR is a Structure-informed multimodal model for jointly modeling the binding specificity of TCR α(CDR3α), TCR β((CDR3β), MHC, and peptide. Our approach integrates a sequence channel—designed to capture amino acid usage specificity by residue-lvel MoE and make MHC-restricted prediction—with a structure channel enhanced by AlphaFold3-generated features to capture the fusion knowledge of structure and sequence. 
 
 ## ⭐️ Setup 
 
@@ -34,8 +34,8 @@ pip install -r requirements.txt
 You can download the datasets and model checkpints from 
 [Datasets and checkpoints](https://zenodo.org/records/17695854)
 
-After downloading, unzip the downloaded datasets/checkpoints in the `./datasets/` and `./results/` folders. 
-(e.g data`./datasets/test_immrep23_unseen/0/0_token.pt`     checkpoint `./results/unseen.pt`)
+After downloading, unzip the downloaded datasets/checkpoints in the `./dataset/` and `./results/` folders. 
+(e.g data`./dataset/test_immrep23_unseen/0/0_token.pt`     checkpoint `./results/unseen.pt`)
 Remember to modify the related model_paths in  `test` named python file.
 
 # Usage
@@ -70,7 +70,20 @@ python ./af3_binding/test.py
 
 ### 🧬 Inference on your own dataset
 
-Put your `.csv` file in dataset with format like below (e.g. `./datasets/test_unseen.csv`): 
+Put your `.csv` file in dataset: `./dataset/test_unseen.csv`
+You should also place the corresponding AlphaFold3 prediction outputs under the dataset/ directory:
+```
+dataset/
+├── test_unseen.csv
+├── sample_1/
+│   ├── 1_confidences.json
+│   ├── 1_model.cif
+|   ├── 1_data.json
+│   ├── ...
+├── sample_2/
+│   ├── ...
+```
+After preparing both the .csv file and AlphaFold3 structural outputs, run `python test.py`
 
 ## License
 MIT License 
